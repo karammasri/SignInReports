@@ -16,7 +16,7 @@ $AuthenticationContext = $null
 
 $Headers = ""
 
-$SingInReportsEndpoint = 'https://graph.microsoft.com/beta/auditLogs/signIns'
+$SignInReportsEndpoint = 'https://graph.microsoft.com/beta/auditLogs/signIns'
 
 $MaxRetries = 5
 
@@ -274,7 +274,7 @@ function Get-SummarySignInReport
         }
     }
     
-    $QueryURL = $SingInReportsEndpoint
+    $QueryURL = $SignInReportsEndpoint
 
     if ($Filter.Length -gt 0)
     {
