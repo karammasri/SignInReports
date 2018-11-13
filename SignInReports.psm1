@@ -18,8 +18,6 @@ $Headers = ""
 
 $SignInReportsEndpoint = 'https://graph.microsoft.com/beta/auditLogs/signIns'
 
-$MaxRetries = 5
-
 function Load-ADAL
 {
     [CmdletBinding()]
@@ -164,7 +162,11 @@ function Get-SummarySignInReport
 
         [Parameter()]
         [int[]]
-        $StatusCode
+        $StatusCode,
+
+        [Parameter()]
+        [int]
+        $MaxRetries = 5
     )
     
     # Build Filter
@@ -283,8 +285,14 @@ function Get-SummarySignInReport
     
     Write-Verbose "Using query: $QueryURL"
     
+    $CurrentRetries = 0
     while ($true)
     {
+        if ($CurrentRetries -ge $MaxRetries)
+        {
+            Write-Error "Exceeded maximum number of retries ($MaxRetries)"
+            break
+        }
         try
         {
             # $Response = Invoke-RestMethod -Headers $Headers -UseBasicParsing -Uri $QueryURL -Method Get
@@ -294,8 +302,11 @@ function Get-SummarySignInReport
         {
             if (([int]$_.Exception.Response.StatusCode) -eq [System.Net.HttpStatusCode]::Unauthorized)
             {
+                Write-Verbose "Trying to acquire a new access token"
                 if (Get-AccessTokenByRefreshToken)
                 {
+                    Write-Verbose "Access token acquired"
+                    $CurrentRetries++
                     continue
                 }
             }
@@ -311,6 +322,9 @@ function Get-SummarySignInReport
 
         if ($Response.psobject.properties.name -contains 'value')
         {
+            # We got a valid answer, clear the retries count
+            $CurrentRetries = 0
+            
             foreach ($V in $Response.value)
             {
                 # remove properties that are complex objects or that require additional formatting
